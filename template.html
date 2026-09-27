@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>טין 2027 — תוכנית הטיול</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+
+:root{
+  --bg:#F3F6F8;--card:#FFFFFF;--card2:#EDF2F5;--line:#D5E0E7;--txt:#0F1E28;--txt2:#33485A;--mute:#5E7486;
+  --ice:#0A8AA8;--onice:#FFFFFF;--good:#1C8F59;--warn:#A9680C;--purp:#6E48B8;--rose:#BE3A50;
+  --hero:#DCEAF1;--map:#E4ECF1;--grid:rgba(10,138,168,.10);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1219;--card:#141F29;--card2:#1B2A36;--line:#2A4152;--txt:#EAF2F6;--txt2:#C4D6E0;--mute:#7D95A7;
+    --ice:#5FD0E8;--onice:#07121A;--good:#4ECB8E;--warn:#F0A63C;--purp:#B98BF0;--rose:#E87A8A;
+    --hero:#153042;--map:#0E1A24;--grid:rgba(95,208,232,.07);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1219;--card:#141F29;--card2:#1B2A36;--line:#2A4152;--txt:#EAF2F6;--txt2:#C4D6E0;--mute:#7D95A7;
+  --ice:#5FD0E8;--onice:#07121A;--good:#4ECB8E;--warn:#F0A63C;--purp:#B98BF0;--rose:#E87A8A;
+  --hero:#153042;--map:#0E1A24;--grid:rgba(95,208,232,.07);
+}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
+*,*:before,*:after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:"Heebo","Assistant",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;padding-bottom:48px}
+h1,h2,p,ul{margin:0;padding:0}
+
+header{padding:24px 16px 18px;background:linear-gradient(180deg,var(--hero),var(--bg));border-bottom:1px solid var(--line)}
+.kick{font-size:12px;letter-spacing:.08em;color:var(--ice);margin-bottom:6px}
+h1{font-size:30px;font-weight:700;line-height:1.1}
+.dates{color:var(--mute);font-size:14px;margin-top:6px}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 6px;text-align:center}
+.stat b{display:block;font-size:20px;font-weight:700;color:var(--ice);line-height:1.1}
+.stat span{display:block;font-size:10.5px;color:var(--mute);margin-top:5px}
+
+.tabs{position:sticky;top:0;z-index:1000;display:flex;gap:7px;overflow-x:auto;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab,.chip{flex:0 0 auto;background:var(--card);border:1px solid var(--line);color:var(--mute);font:inherit;font-size:13.5px;padding:7px 14px;border-radius:100px;cursor:pointer}
+.tab[aria-selected="true"],.chip[aria-pressed="true"]{background:var(--ice);border-color:var(--ice);color:var(--onice);font-weight:600}
+.tab:focus-visible,.chip:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+.panel[hidden]{display:none}
+
+h2.sec{padding:20px 16px 9px;font-size:12.5px;letter-spacing:.06em;color:var(--mute);font-weight:500}
+
+.day{margin:0 16px 9px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.day.hl{border-color:var(--ice)}
+.dtop{display:flex;align-items:center;gap:11px;width:100%;padding:13px;background:none;border:0;color:var(--txt);font:inherit;text-align:start;cursor:pointer}
+.dtop:focus-visible{outline:2px solid var(--ice);outline-offset:-2px}
+.date{flex:0 0 42px;text-align:center}
+.date b{display:block;font-size:18px;font-weight:700;line-height:1}
+.date span{display:block;font-size:10px;color:var(--mute);margin-top:3px}
+.bar{flex:0 0 4px;align-self:stretch;border-radius:4px;min-height:36px}
+.mid{flex:1;min-width:0}
+.mid b{display:block;font-size:14.5px;font-weight:600}
+.mid span{display:block;font-size:12px;color:var(--mute);margin-top:3px}
+.price{flex:0 0 auto;font-size:13px;font-weight:700;color:var(--ice)}
+.chev{flex:0 0 auto;color:var(--mute);font-size:12px;transition:transform .18s}
+.dtop[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.body{padding:0 14px 15px;border-top:1px solid var(--line)}
+.body[hidden]{display:none}
+.body ul{list-style:none;margin-top:13px}
+.body li{position:relative;padding-inline-start:15px;margin-bottom:7px;font-size:13.5px;color:var(--txt2)}
+.body li:before{content:"";position:absolute;inset-inline-start:0;top:8px;width:5px;height:5px;border-radius:50%;background:var(--mute)}
+.focus{margin-top:12px;padding:11px 13px;border-radius:9px;font-size:13.2px;line-height:1.7;color:var(--txt2);background:rgba(76,190,130,.10);border-inline-start:3px solid var(--good)}
+.focus.w{background:rgba(220,150,50,.10);border-inline-start-color:var(--warn)}
+.focus.i{background:rgba(60,180,210,.10);border-inline-start-color:var(--ice)}
+
+.box{margin:0 16px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:12px 15px;border-bottom:1px solid var(--line);font-size:13.8px}
+.row:last-child{border-bottom:0}
+.row .l{color:var(--txt2);flex:1}
+.row .l small{display:block;color:var(--mute);font-size:11.5px;margin-top:3px;line-height:1.55}
+.row .v{font-weight:600;white-space:nowrap;color:var(--txt)}
+.row.tot{background:var(--card2);font-size:15.5px}
+.row.tot .v{color:var(--ice);font-size:19px;font-weight:700}
+.row.paid .v{color:var(--good)}
+.row.opt .l,.row.opt .v{color:var(--mute)}
+.hdr{padding:10px 15px;background:var(--card2);font-size:11.5px;letter-spacing:.05em;color:var(--mute);border-bottom:1px solid var(--line)}
+.stars{color:var(--warn);font-size:12px;font-weight:700}
+.row a{color:var(--ice)}
+
+.t{display:flex;gap:11px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line)}
+.t:last-child{border-bottom:0}
+.t .ic{flex:0 0 auto;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;margin-top:1px}
+.t.done .ic{background:rgba(76,190,130,.18);color:var(--good)}
+.t.open .ic{background:rgba(220,150,50,.18);color:var(--warn)}
+.t .tx{flex:1;font-size:13.6px}
+.t .tx small{display:block;color:var(--mute);font-size:11.5px;margin-top:3px;line-height:1.55}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:100px}
+.tag.y{background:rgba(76,190,130,.16);color:var(--good)}
+.tag.n{background:rgba(200,70,90,.14);color:var(--rose)}
+
+/* MAP */
+.mapnote{margin:14px 16px 0;font-size:12.5px;color:var(--mute);line-height:1.6}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:12px 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{font-size:12.5px;padding:6px 12px;display:flex;align-items:center;gap:6px}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.leaflet-container{font-family:inherit;background:transparent}
+.leaflet-popup-content-wrapper{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:12px}
+.leaflet-popup-tip{background:var(--card)}
+.leaflet-popup-content{margin:12px 14px;direction:rtl;text-align:right;font-size:13.2px;line-height:1.6;min-width:190px}
+.leaflet-popup-content b.pt{display:block;font-size:15px;margin-bottom:3px}
+.leaflet-popup-content .pm{color:var(--mute);font-size:11.8px;margin-bottom:6px}
+.leaflet-popup-content a{color:var(--ice);font-weight:600}
+.leaflet-control-zoom a{background:var(--card)!important;color:var(--txt)!important;border-color:var(--line)!important}
+.lbl{background:transparent;border:0;box-shadow:none;color:var(--txt2);font-size:11px;font-weight:600;white-space:nowrap;text-shadow:0 0 3px var(--map),0 0 3px var(--map)}
+.leaflet-tooltip.lbl:before{display:none}
+.maplinks{display:flex;gap:8px;margin:12px 16px 0}
+.btn{flex:1;text-align:center;text-decoration:none;background:var(--card);border:1px solid var(--line);color:var(--ice);font-weight:600;font-size:13px;padding:10px;border-radius:10px}
+
+
+.jump{padding:0 16px 10px}
+.jump select{width:100%;font:inherit;font-size:14px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt)}
+.basechips{padding-top:0;align-items:center}
+.blbl{font-size:12.5px;color:var(--mute);flex:0 0 auto}
+.gsat{text-decoration:none;color:var(--ice);font-weight:600}
+.basenote{margin:0 16px 10px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.6;color:var(--txt2);background:rgba(220,150,50,.10);border-inline-start:3px solid var(--warn)}
+.basenote[hidden]{display:none}
+.mapwrap{position:relative;margin:0 16px}
+#map{height:72vh;min-height:440px;border:1px solid var(--line);border-radius:14px;background:var(--map);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:40px 40px;overflow:hidden}
+#map.hasbase{background-image:none}
+.rot{position:absolute;top:10px;right:10px;z-index:640;display:flex;flex-direction:column;gap:6px}
+.rot button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);font-size:19px;line-height:1;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+#needle{display:inline-block;color:var(--rose);font-size:15px;transition:transform .15s}
+.info{position:absolute;left:10px;right:10px;bottom:10px;z-index:660;max-height:58%;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px 12px;box-shadow:0 6px 24px rgba(0,0,0,.28);direction:rtl}
+.info[hidden]{display:none}
+@media(min-width:900px){.info{left:auto;right:62px;top:10px;bottom:auto;width:330px;max-height:calc(100% - 20px)}}
+.ix{position:absolute;top:8px;left:8px;width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--txt);cursor:pointer;font-size:14px}
+.ihead{display:flex;align-items:center;gap:8px;padding-left:36px}
+.ihead b{font-size:17px}
+.ihead .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px var(--card),0 0 0 3px var(--line)}
+.itags{margin:7px 0 4px}
+.dchip{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:100px;color:#fff;margin-left:5px}
+.irow{display:flex;align-items:center;gap:10px;margin-top:11px}
+.ilbl{flex:0 0 78px;font-size:12.5px;color:var(--mute)}
+.ival{font-size:12.5px;font-weight:600;color:var(--txt);white-space:nowrap}
+.sbar{display:flex;gap:3px;direction:ltr}
+.sbar i{width:17px;height:9px;border-radius:3px;background:var(--line)}
+.sbar.st i.on.l1{background:#2E9E48}.sbar.st i.on.l2{background:#8BC34A}.sbar.st i.on.l3{background:#F0A63C}.sbar.st i.on.l4{background:#E8663A}.sbar.st i.on.l5{background:#D6343A}
+.sbar.sn i.on{background:#4FB3E8}
+.isub{margin:5px 0 0 0;padding-inline-start:88px;font-size:12px;color:var(--mute);line-height:1.6}
+.isub b{color:var(--txt2)}
+.igrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
+.igrid div{background:var(--card2);border-radius:8px;padding:7px 8px;font-size:11px;color:var(--mute);text-align:center}
+.igrid b{display:block;font-size:13.5px;color:var(--txt);margin-top:2px}
+.pnote{margin-top:10px;padding:8px 10px;border-radius:8px;background:rgba(60,180,210,.10);border-inline-start:3px solid var(--ice);font-size:12.8px;color:var(--txt2)}
+.pnote.bad{background:rgba(200,70,90,.10);border-inline-start-color:var(--rose)}
+.ifoot{margin-top:9px;font-size:11px;color:var(--mute);line-height:1.55}
+.ifoot a{color:var(--ice)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:12px 16px 0;font-size:12px;color:var(--mute)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:4px;border-radius:3px}
+.scales{margin:10px 16px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:11.8px;color:var(--mute);line-height:1.65;display:grid;gap:6px}
+.scales b{color:var(--txt2)}
+.attrib{padding:8px 16px 0;font-size:11px;color:var(--mute);line-height:1.6}
+.nolabels .leaflet-tooltip.lbl{display:none}
+.lbl.run{color:var(--txt);font-weight:700}
+.leaflet-tooltip.hovtip{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;font-weight:600;font-size:12px;padding:3px 8px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.leaflet-tooltip.hovtip:before{display:none}
+footer{margin:24px 16px 0;padding-top:15px;border-top:1px solid var(--line);font-size:11.5px;color:var(--mute);line-height:1.75}
+@media(max-width:400px){.stats{grid-template-columns:repeat(2,1fr)}h1{font-size:26px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kick">VAL CLARET · ESPACE KILLY</div>
+  <h1>טין 2027</h1>
+  <div class="dates">8–21 בינואר · 13 לילות · סולו</div>
+</header>
+
+<div class="stats">
+  <div class="stat"><b>12</b><span>ימי גלישה</span></div>
+  <div class="stat"><b>18</b><span>שעות הדרכה</span></div>
+  <div class="stat"><b>4</b><span>ימי אוףפיסט</span></div>
+  <div class="stat"><b>~21k</b><span>סה״כ ₪</span></div>
+</div>
+
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-p="p1">לוח</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="pm">מפה</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p5">האתר</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p2">עלויות</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p3">ציוד ורמה</button>
+  <button class="tab" role="tab" aria-selected="false" data-p="p4">סטטוס</button>
+</nav>
+
+<div class="panel" id="p1"><h2 class="sec">יום אחר יום · לחיצה פותחת</h2><div id="days"></div></div>
+
+<div class="panel" id="pm" hidden>
+  <p class="mapnote">מסלולים ומעליות אמיתיים מ־OpenStreetMap. <b>ריחוף או לחיצה</b> על מסלול מסמנים אותו ופותחים כרטיס עם צבע, <b>תלילות 1–5</b> ו<b>שימור שלג 1–5</b>. צביטה לזום, שתי אצבעות לסיבוב.</p>
+  <div class="chips" id="chips"></div>
+  <div class="chips basechips">
+    <span class="blbl">רקע:</span>
+    <button class="chip bchip" data-b="none" aria-pressed="true">ללא</button>
+    <button class="chip bchip" data-b="topo" aria-pressed="false">טופוגרפית</button>
+    <button class="chip bchip" data-b="sat" aria-pressed="false">לוויין</button>
+    <a class="chip gsat" id="gsat" href="#">🛰 המקום הזה בלוויין ↗</a>
+  </div>
+  <div class="basenote" id="basenote" hidden>רקע המפה לא נטען בתוך Claude — הסביבה חוסמת תמונות מאתרים חיצוניים. <b>״המקום הזה בלוויין״</b> פותח את אותו מקום בגוגל. בגרסה המתארחת שלך (GitHub Pages) הלוויין נטען אוטומטית.</div>
+  <div class="jump"><select id="jump" aria-label="קפוץ אל"><option value="">קפוץ אל…</option></select></div>
+  <div class="mapwrap"><div id="map" dir="ltr"></div>
+    <div class="rot" dir="ltr">
+      <button id="rl" aria-label="סובב שמאלה">↺</button>
+      <button id="rn" aria-label="צפון למעלה"><span id="needle">▲</span></button>
+      <button id="rr" aria-label="סובב ימינה">↻</button>
+    </div>
+    <div class="info" id="info" hidden></div>
+  </div>
+  <div class="legend" id="legend"></div>
+  <div class="scales">
+    <div><b>תלילות</b> — לפי הקטע התלול ביותר (100 מ׳): 1 מתחת ל־11° · 2 עד 17° · 3 עד 22° · 4 עד 27° · 5 מעל 27°</div>
+    <div><b>שימור שלג</b> — הערכה לפי גובה המסלול והכיוון שהוא פונה אליו. גבוה ופונה צפונה = שלג קר ואיכותי יותר. <b>לא מדידת שלג בזמן אמת.</b></div>
+  </div>
+  <p class="attrib">מסלולים ומעליות: © OpenStreetMap contributors (ODbL), דרך OpenSkiData. מסעדות וברים: Google Maps. הדירוג לפי OSM ויכול להיות שונה במעט מהשילוט בשטח.</p>
+  <div class="maplinks">
+    <a class="btn" href="https://openskimap.org/#13/45.462/6.915" target="_blank" rel="noopener">OpenSkiMap</a>
+    <a class="btn" href="https://en.tignes.net/skiing/lifts-and-slopes-open" target="_blank" rel="noopener">מצב מסלולים היום</a>
+  </div>
+</div>
+
+<div class="panel" id="p5" hidden>
+  <h2 class="sec">הבסיס שלך — ליד Bollin</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>Bollin + מעלית הגרירה קלארה</b><small>ממש ליד הדלת · <b>מעליות חינם</b> · המגרש לאולי, נולי, פרסים ודפנות קטנות</small></div><div class="v">0 דק׳</div></div>
+    <div class="row"><div class="l"><b>Tufs + Tichot</b><small>הדרך המהירה למעלה בכל בוקר</small></div><div class="v">2 דק׳</div></div>
+    <div class="row"><div class="l"><b>פוניקולר Perce-Neige</b><small>לקרחון הגראנד מוט · יוצא אחת ל־20 דק׳</small></div><div class="v">3 דק׳</div></div>
+    <div class="row"><div class="l"><b>Place des Curlings</b><small>מרכז המסעדות והברים של וואל קלארה</small></div><div class="v">3 דק׳</div></div>
+  </div>
+
+  <h2 class="sec">איפה לגלוש — לפי סוג יום</h2>
+  <div class="box">
+    <div class="hdr">יום פאודר</div>
+    <div class="row"><div class="l"><b>Chardonnet · Palafour</b> (לה לק)<small>המקומות הראשונים ביום אחרי שלג</small></div></div>
+    <div class="row"><div class="l"><b>Vallon de la Sache</b><small>פחות מ־3 דקות הליכה · ההליכה הקצרה היא מה שמשאיר שלג · רק עם מדריך</small></div></div>
+    <div class="row"><div class="l"><b>מתחת ל־Grand Huit</b><small>stash מקומי · עקבות טריים אחרי שלג</small></div></div>
+    <div class="row"><div class="l"><b>צד La Daille</b> (ואל דיזר)<small>אוףפיסט בלי הליכה · שקט, נשאר נקי יותר זמן</small></div></div>
+  </div>
+  <div class="box">
+    <div class="hdr">יום ערפל / ראות שטוחה</div>
+    <div class="row"><div class="l"><b>Aiguille Percée ← Les Brévières</b><small>1,550 מ׳ · <b>הקטע היחיד עם עצים וקווי ייחוס</b></small></div></div>
+    <div class="row opt"><div class="l">לא להתעקש על הקרחון או על טובייר<small>אין שם נקודות ייחוס ביום כזה</small></div></div>
+  </div>
+  <div class="box">
+    <div class="hdr">יום קארבינג</div>
+    <div class="row"><div class="l"><b>Double M</b> — מהגראנד מוט<small>רחב, מתון, בלי סלעים · <b>הכי טוב לקארבינג במהירות</b></small></div></div>
+    <div class="row"><div class="l"><b>Combe Folle</b> (אדום) · <b>Crocus</b> (שחור)<small>מטובייר ללווצ׳ה</small></div></div>
+  </div>
+  <div class="box">
+    <div class="hdr">סייד היטס וקפיצות</div>
+    <div class="row"><div class="l"><b>TS Mont Blanc</b> — בורדרקרוס<small>גלים ובנקים · <b>להתחיל כאן, לא בקיקרים</b></small></div></div>
+    <div class="row"><div class="l"><b>Bollin</b> — חינם, ליד הבית</div></div>
+    <div class="row"><div class="l">Snowpark · חצי־פייפ Les Lanches<small>XS ואז S · רק עם מגן גב</small></div></div>
+  </div>
+  <div class="box">
+    <div class="hdr">בין פיסטה לאוףפיסט</div>
+    <div class="row"><div class="l"><b>Paquerettes</b> — Naturide<small>ראש טומז · מסומן ומאובטח אבל לא מגורד · <b>החוליה החסרה</b></small></div></div>
+  </div>
+  <div class="box">
+    <div class="hdr">לא לגעת השנה</div>
+    <div class="row"><div class="l"><b>The Fingers</b><small>קולוארים · אגם בתחתית = מלכודת שטח</small></div><div class="v"><span class="tag n">לא</span></div></div>
+    <div class="row"><div class="l"><b>La Face de Bellevarde</b><small>3 ק״מ · 959 מ׳ ירידה</small></div><div class="v"><span class="tag n">לא</span></div></div>
+    <div class="row"><div class="l"><b>Campanules</b><small>מהמורות קרחיות · שבוע שני</small></div><div class="v"><span class="tag n">אחר כך</span></div></div>
+  </div>
+
+  <h2 class="sec">אוכל</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>Le Planté de Bâton</b> <span class="stars">4.8</span><small>למרגלות Tufs — הכי קרוב אליך · קרפים, פונדו, בירה · 902 ביקורות</small></div></div>
+    <div class="row"><div class="l"><b>La Pignatta</b> <span class="stars">4.6</span><small>איטלקי · 2,572 ביקורות · <b>הזמנה חובה</b> · 04 79 06 32 97</small></div></div>
+    <div class="row"><div class="l"><b>L'Armoise</b> <span class="stars">4.0</span><small>צרפתי מסורתי · 3 מנות ב־€28</small></div></div>
+    <div class="row"><div class="l"><b>Le Grattalu</b> <span class="stars">4.2</span><small>רקלט ופונדו · עד חצות</small></div></div>
+    <div class="row"><div class="l"><b>Niurou Steakhouse</b> <span class="stars">4.8</span> · לה לק<small>קוט דה בף · מעט שולחנות, להזמין · 04 79 07 83 76</small></div></div>
+    <div class="row"><div class="l"><b>Le Drôle d'Endroit</b> <span class="stars">4.6</span> · לה לק<small>בלי הזמנות · ~€40 · סגור ראשון</small></div></div>
+    <div class="row"><div class="l"><b>Le Panoramic</b> <span class="stars">4.4</span> · על הקרחון<small>גריל עצים · יקר · פוניקולר אחרון ~16:30 ולרדת אחרון לבד</small></div></div>
+  </div>
+
+  <h2 class="sec">ברים — לסולו</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>Inside Bar</b> <span class="stars">4.6</span><small>וואל קלארה · 16:00–02:00 · מקומיים, DJ, חצים · ״הרגשנו בבית מיד״</small></div></div>
+    <div class="row"><div class="l"><b>Le Studio</b> <span class="stars">4.6</span><small>קטן ואותנטי · הבעלים אוליבייה</small></div></div>
+    <div class="row"><div class="l">Arobaze <span class="stars">4.3</span><small>Place des Curlings · שקט ביום, תוסס בלילה</small></div></div>
+    <div class="row"><div class="l">Jam Bar <span class="stars">4.7</span> · לה לק<small>זול · פסטה ושוקו חם ביתיים · סגור שלישי</small></div></div>
+    <div class="row"><div class="l"><b>האסטרטגיה</b><small>בר אחד, 3–4 פעמים באותה שעה. אחרי יומיים מזהים אותך.</small></div></div>
+  </div>
+
+  <h2 class="sec">פרקטי</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>סופר וואל קלארה</b><small>סוגר <b>13:00–15:30</b></small></div><div class="v">⚠️</div></div>
+    <div class="row"><div class="l"><b>Sherpa לה לק</b><small>07:30–19:30 · שבת הפסקה 13:00–15:30 · <b>ראשון סגור</b> · סנדוויצ׳ים זולים וטובים</small></div></div>
+    <div class="row"><div class="l"><b>תורים</b><small>להיות בתחתית אחרי שבתי הספר יצאו · לוואל דיזר מוקדם או אחה״צ</small></div></div>
+    <div class="row"><div class="l"><b>שאטל חינם</b><small>מחבר את כל כפרי טין</small></div></div>
+    <div class="row"><div class="l"><b>רוח חזקה</b><small>החיבור לוואל דיזר נסגר לפעמים — לא להתרחק. סטטוס ב־tignes.net</small></div><div class="v">⚠️</div></div>
+  </div>
+</div>
+
+<div class="panel" id="p2" hidden>
+  <h2 class="sec">שולם</h2>
+  <div class="box">
+    <div class="row paid"><div class="l">טיסות — אל על<small>LY345 · 8/1 · 05:15 ת״א ← 08:45 ז׳נבה<br>LY346 · 22/1 · 09:50 ז׳נבה ← 14:50 ת״א<br>Economy Classic · 1PC</small></div><div class="v">$758</div></div>
+    <div class="row paid"><div class="l">Airbnb — סטודיו וואל קלארה<small>8–21/1 · 13 לילות · 554 ₪ ללילה · 24 Av. de la Grande Motte</small></div><div class="v">7,200 ₪</div></div>
+    <div class="row paid"><div class="l">ציוד<small>בורד, קשירות, נעליים, כפפות, גרביים, מדרס</small></div><div class="v">שולם</div></div>
+  </div>
+  <h2 class="sec">הדרכות — ממתין לאישור Oxyski</h2>
+  <div class="box">
+    <div class="row"><div class="l">פרטי Oxyski<small>שני 11/1 · 12:00–14:00</small></div><div class="v">€159</div></div>
+    <div class="row"><div class="l">Steep &amp; Deep<small>ג׳–ו׳ 12–15/1 · 09:00–13:00 · 16 שעות · מקס׳ 4</small></div><div class="v">€449</div></div>
+    <div class="row tot"><div class="l">סה״כ הדרכות</div><div class="v">€608</div></div>
+    <div class="row opt"><div class="l">אופציונלי — ESF 4 ימים<small>17–20/1 · 2ème</small></div><div class="v">€212</div></div>
+    <div class="row opt"><div class="l">אופציונלי — בוקר Steep &amp; Deep<small>19, 20 או 21/1</small></div><div class="v">€100</div></div>
+  </div>
+  <h2 class="sec">נותר לשלם</h2>
+  <div class="box">
+    <div class="row"><div class="l">סקיפס 12=14<small>אספס קילי · אונליין · תמונה</small></div><div class="v">~€900</div></div>
+    <div class="row"><div class="l">Altibus הלוך חזור</div><div class="v">~€95</div></div>
+    <div class="row"><div class="l">לילה בז׳נבה · 21/1</div><div class="v">~€100</div></div>
+    <div class="row"><div class="l">ביטוח Carré Neige</div><div class="v">~€50</div></div>
+    <div class="row"><div class="l">אוכל ושתייה</div><div class="v">~4,100 ₪</div></div>
+  </div>
+  <h2 class="sec">סיכום</h2>
+  <div class="box">
+    <div class="row"><div class="l">שולם</div><div class="v">~10,000 ₪</div></div>
+    <div class="row"><div class="l">הדרכות + סקיפס + לוגיסטיקה</div><div class="v">~7,000 ₪</div></div>
+    <div class="row"><div class="l">אוכל, בזבוזים, רזרבה</div><div class="v">~4,000 ₪</div></div>
+    <div class="row tot"><div class="l">סה״כ צפוי</div><div class="v">~21,000 ₪</div></div>
+  </div>
+</div>
+
+<div class="panel" id="p3" hidden>
+  <h2 class="sec">הסט</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>Lib Tech Cold Brew C2 · 157</b><small>C2 היברידי · מותן 262 · פלקס 6 · <b>Magne-Traction</b> לקרח · אף צף</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l"><b>Burton Cartel X Re:Flex</b><small>פלקס בינוני-קשיח</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l"><b>Burton Photon Boa</b><small>מולד תרמי נעשה · מדרס FP Gamechangers 5 מ״מ</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l"><b>Burton GORE-TEX Mitten · L</b><small>בטנה נשלפת · גאונטלט · כיס מחמם</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l">Smartwool × 4<small>מרינו דקות</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l">קסדות<small>ProSurf ויזור פוטוכרומי · Atomic גיבוי</small></div><div class="v">✓</div></div>
+    <div class="row"><div class="l">משקף<small>עדשה צהובה — תאורה שטוחה</small></div><div class="v">✓</div></div>
+    <div class="row opt"><div class="l">מגן גב · Chips 3.0 · חליפה<small>אופציונלי / בלאק פריידיי</small></div><div class="v">—</div></div>
+    <div class="row"><div class="l"><b>ציוד בטיחות</b><small>ביפר, מגרפה, אתת, אירבג — <b>כלול חינם ב־Oxyski</b></small></div><div class="v">כלול</div></div>
+  </div>
+  <h2 class="sec">הרמה היום</h2>
+  <div class="box">
+    <div class="row"><div class="l">ניסיון<small>~25 ימים · 4–10 בשנה · אפס הדרכות</small></div></div>
+    <div class="row"><div class="l">אדומים<small>מהיר, קארבינג בשלג טוב, ~80 קמ״ש</small></div><div class="v"><span class="tag y">חזק</span></div></div>
+    <div class="row"><div class="l">שחורים<small>החלקות צד כשתלול</small></div><div class="v"><span class="tag y">בינוני</span></div></div>
+    <div class="row"><div class="l">קרח<small>מאבד אחיזה — <b>החולשה המרכזית</b></small></div><div class="v"><span class="tag n">חלש</span></div></div>
+    <div class="row"><div class="l">אולי · סייד היטס<small>אולי יש · דפנות בתהליך</small></div><div class="v"><span class="tag y">בתהליך</span></div></div>
+    <div class="row"><div class="l">אוףפיסט · סוויץ׳</div><div class="v"><span class="tag n">אין</span></div></div>
+  </div>
+  <h2 class="sec">יעדים</h2>
+  <div class="box">
+    <div class="row"><div class="l"><b>הליבה:</b> מחויבות לקצה בשלג קשה</div><div class="v">🎯</div></div>
+    <div class="row"><div class="l">קארבינג נקי באדומים בכל תנאי</div><div class="v">צפוי</div></div>
+    <div class="row"><div class="l">שחורים בפניות מלאות במהירות</div><div class="v">צפוי</div></div>
+    <div class="row"><div class="l">פאודר — חיבור פניות בביטחון</div><div class="v">צפוי</div></div>
+    <div class="row"><div class="l">סייד היטס עם אינדי גראב</div><div class="v">צפוי</div></div>
+    <div class="row"><div class="l">קיקר XS–S · סייד היט מטר+</div><div class="v">מתיחה</div></div>
+  </div>
+  <h2 class="sec">לא השנה</h2>
+  <div class="box">
+    <div class="row"><div class="l">אוףפיסט לבד</div><div class="v"><span class="tag n">לא</span></div></div>
+    <div class="row"><div class="l">הפוך (Tamedog וכו׳)</div><div class="v"><span class="tag n">לא</span></div></div>
+    <div class="row"><div class="l">The Fingers · La Face</div><div class="v"><span class="tag n">לא</span></div></div>
+    <div class="row"><div class="l">קיקרים מעל S</div><div class="v"><span class="tag n">לא</span></div></div>
+  </div>
+</div>
+
+<div class="panel" id="p4" hidden>
+  <h2 class="sec">מה סגור ומה לא</h2>
+  <div class="box" id="todo"></div>
+</div>
+
+<footer>ציוד בטיחות כלול ב־Oxyski · לה ברביר = הביטוח ליום ערפל · אוףפיסט לבד — בשום יום</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+<script>var SKI=/*SKIDATA*/;</script>
+<script>
+var DAYS=[
+{d:"8",w:"שישי",c:"var(--purp)",t:"הגעה",s:"נחיתה 08:45 · וואל קלארה ~14:00",li:["05:15 טיסה · נחיתה ז׳נבה 08:45","Altibus ~10:30 · ~3.5 שעות","צ׳ק־אין מ־16:00","להרכיב סט: 15/-6, רוחב, פורוורד לין","סקיפס + קניות"],f:"<b>אפס גלישה היום.</b> ירידה אחת עם ציוד לא מכוונן לא שווה יום סקיפס.",fc:"w"},
+{d:"9",w:"שבת",c:"var(--ice)",t:"יום כיול",s:"כחולים ואדומים קלים",li:["טופס וטישו","לבדוק נקודות לחץ, מדרס, קצה","יום החלפה — מסלולים ריקים","<b>לקנות אוכל — Sherpa סגור מחר</b>"],f:"<b>אל תלמד כלום היום.</b> ציוד חדש, תן לגוף להסתגל.",fc:"i"},
+{d:"10",w:"ראשון",c:"var(--mute)",t:"מנוחה",s:"בלי בורד",li:["Le Lagon — חינם מסקיפס 6+","לאכול, לישון, לסדר ציוד"],f:"11 ימים לפניך. <b>מנוחה מוקדמת עדיפה על התרסקות ביום 7.</b>",fc:"i"},
+{d:"11",w:"שני",c:"var(--good)",t:"פרטי — Oxyski",s:"12:00–14:00",p:"€159",hl:1,li:["בוקר: גלישה עצמאית","12:00–14:00 פרטי","אחה״צ: לתרגל"],f:"<b>לבקש:</b> אחיזת קצה על שלג קשה + הכנה ל־Steep &amp; Deep. המדריך מאשר רמה יום לפני.",fc:""},
+{d:"12",w:"שלישי",c:"var(--good)",t:"Steep & Deep · 1",s:"09:00–13:00",p:"€449",hl:1,li:["תדריך ובדיקת ביפרים","מקס׳ 4 משתתפים","אחה״צ לתרגל"],f:"<b>תרגיל אחד לכל השבועיים.</b> ותגיד לו: אפס אוףפיסט.",fc:""},
+{d:"13",w:"רביעי",c:"var(--good)",t:"Steep & Deep · 2",s:"09:00–13:00",hl:1,li:["אחה״צ: Paquerettes (Naturide)"],f:"שלג לא מגורד, מסומן ומאובטח — <b>החוליה החסרה</b>.",fc:""},
+{d:"14",w:"חמישי",c:"var(--good)",t:"Steep & Deep · 3",s:"09:00–13:00",hl:1,li:["לבקש Vallon de la Sache","אחה״צ: Double M לקארבינג"],f:"שלוש דקות הליכה = <b>שלג בתולי</b>.",fc:""},
+{d:"15",w:"שישי",c:"var(--good)",t:"Steep & Deep · 4",s:"09:00–13:00",hl:1,li:["לשאול מה לתרגל בשבוע השני","לקחת מספר של המדריך"],f:"<b>שאלה לפני פרידה:</b> מה הכי כדאי לי לעבוד עליו?",fc:""},
+{d:"16",w:"שבת",c:"var(--ice)",t:"עצמאי",s:"לתרגל את השבוע",li:["Paquerettes או אדומים בקארבינג"],f:"כאן מה שלמדת <b>הופך לשלך</b>.",fc:"i"},
+{d:"17",w:"ראשון",c:"var(--warn)",t:"קארבינג",s:"עצמאי",li:["Double M מהקרחון","Combe Folle (אדום) · Crocus (שחור)","פוניקולר עמוס → Des Lanches + Vanoise"],f:"הפוניקולר <b>אחת ל־20 דקות</b>.",fc:"w"},
+{d:"18",w:"שני",c:"var(--warn)",t:"סייד היטס",s:"עצמאי",li:["TS Mont Blanc — בורדרקרוס","Bollin — חינם, ליד הבית"],f:"<b>גלים ובנקים</b> — לצאת מדופן ולנחות על קצה טעון.",fc:""},
+{d:"19",w:"שלישי",c:"var(--warn)",t:"קארבינג + דפנות",s:"עצמאי",li:["אינדי גראב מדופן 30–60 ס״מ","אופציה: בוקר Steep &amp; Deep (€100)"],f:"<b>גראב לא דורש גובה</b> — דורש משיכת ברכיים.",fc:""},
+{d:"20",w:"רביעי",c:"var(--warn)",t:"יום חופשי",s:"עצמאי",li:["מה שהכי אהבת","ערפל → לה ברביר"],f:"<b>לה ברביר = הביטוח ליום ערפל.</b>",fc:"w"},
+{d:"21",w:"חמישי",c:"var(--rose)",t:"יציאה",s:"צ׳ק־אאוט 10:00",li:["לבקש להשאיר מזוודה → בוקר גלישה","שאטל לז׳נבה","לילה ליד השדה · 22/1 טיסה 09:50"],f:"<b>שווה לשאול — בוקר גלישה אחרון.</b>",fc:"i"}
+];
+var TODO=[
+["done","טיסות — אל על","8/1 05:15 · 22/1 09:50 · $758"],
+["done","לינה — וואל קלארה","8–21/1 · 7,200 ₪ · ליד Bollin"],
+["done","ציוד מלא","בורד, קשירות, נעליים עם מולד, כפפות, גרביים, מדרס"],
+["open","Oxyski — ממתין לתשובה","פרטי 11/1 (€159) + Steep & Deep 12–15/1 (€449)"],
+["open","סקיפס 12=14","~€900 · דצמבר"],
+["open","Altibus הלוך חזור","~€95 · נובמבר"],
+["open","לילה בז׳נבה","21/1"],
+["open","ביטוח אוףפיסט","Carré Neige ~€4 ליום"],
+["open","קורס מפולות אונליין","חינם · דצמבר"],
+["open","ניידות קרסול וירך","15 דק׳ ביום מאוקטובר"],
+["open","ווקס + ריכוך נעליים","לפני הטיסה"],
+["open","מגן גב","בלאק פריידיי"]
+];
+
+document.getElementById('days').innerHTML=DAYS.map(function(d,i){
+  return '<div class="day'+(d.hl?' hl':'')+'"><button class="dtop" aria-expanded="false" aria-controls="b'+i+'">'+
+  '<span class="date"><b>'+d.d+'</b><span>'+d.w+'</span></span><span class="bar" style="background:'+d.c+'"></span>'+
+  '<span class="mid"><b>'+d.t+'</b><span>'+d.s+'</span></span>'+(d.p?'<span class="price">'+d.p+'</span>':'')+
+  '<span class="chev">▾</span></button><div class="body" id="b'+i+'" hidden><ul>'+
+  d.li.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul><div class="focus '+d.fc+'">'+d.f+'</div></div></div>';
+}).join('');
+document.querySelectorAll('.dtop').forEach(function(b){
+  b.onclick=function(){var y=document.getElementById(b.getAttribute('aria-controls'));var o=y.hidden;y.hidden=!o;b.setAttribute('aria-expanded',o);};
+});
+document.getElementById('todo').innerHTML=TODO.map(function(o){
+  return '<div class="t '+o[0]+'"><span class="ic">'+(o[0]==='done'?'✓':'!')+'</span><span class="tx">'+o[1]+'<small>'+o[2]+'</small></span></div>';
+}).join('');
+
+/* ---------- MAP ---------- */
+var DIFF={
+  novice:{n:"ירוק",c:"#2E9E48"},
+  easy:{n:"כחול",c:"#2F6FDB"},
+  intermediate:{n:"אדום",c:"#D6343A"},
+  advanced:{n:"שחור",c:"#15191E"},
+  expert:{n:"שחור כפול",c:"#15191E"},
+  freeride:{n:"פרירייד",c:"#E58A1F"},
+  "":{n:"לא מסווג",c:"#8795A1"}
+};
+var GROUPS=[
+  {k:"novice",n:"ירוק",c:"#2E9E48",ds:["novice"]},
+  {k:"easy",n:"כחול",c:"#2F6FDB",ds:["easy"]},
+  {k:"inter",n:"אדום",c:"#D6343A",ds:["intermediate"]},
+  {k:"black",n:"שחור",c:"#15191E",ds:["advanced","expert"]},
+  {k:"other",n:"פרירייד / אחר",c:"#E58A1F",ds:["freeride",""]}
+];
+var LIFTN={chair_lift:"רכבל כיסאות",gondola:"גונדולה",cable_car:"רכבל",funicular:"פוניקולר","t-bar":"מעלית גרירה",platter:"מעלית גרירה",drag_lift:"מעלית גרירה",rope_tow:"חבל גרירה",magic_carpet:"מסוע"};
+var STEEPN=["","מתון מאוד","מתון","בינוני","תלול","תלול מאוד"];
+var SNOWN=["","חלש","בינוני-","בינוני","טוב","מצוין"];
+function aspName(a){ if(a==null) return "—"; var n=["צפון","צפון-מזרח","מזרח","דרום-מזרח","דרום","דרום-מערב","מערב","צפון-מערב"]; return n[Math.round(a/45)%8]; }
+function aspHint(a){
+  if(a==null) return "";
+  if(a>=315||a<45) return "פונה צפונה: השלג נשאר קר ואיכותי יותר, פחות קרח בבוקר.";
+  if(a>=135&&a<225) return "פונה דרומה: קרח בבוקר, מתרכך בצהריים. כדאי אחרי 11:00.";
+  return "פונה "+(a<180?"מזרחה":"מערבה")+": שמש "+(a<180?"בבוקר — מתרכך מוקדם":"אחר הצהריים — קשה יותר בבוקר")+".";
+}
+var PLAN_RUNS={
+ "Double M":"<b>המגרש לקארבינג במהירות.</b> רחב, מהקרחון.",
+ "Campanules":"שחור שקט, אבל <b>המהמורות קרחיות</b>. שבוע שני.",
+ "Johan Clarey":"שחור עם <b>יציאת חירום ימינה בסוף</b> — אפשר לנסות בלי להתחייב.",
+ "Combe Folle":"אדום · לטחון את התרגיל שקיבלת.",
+ "Crocus":"שחור · לשבוע השני.",
+ "Henri":"כחול · <b>עמוס מאוד אחרי 15:30</b>.",
+ "Grattalu":"כחול רחב · חזרות על תרגיל.",
+ "Sache":"<b>Vallon de la Sache</b> · רק עם מדריך.",
+ "Boarder Cross":"<b>גלים ובנקים — המגרש לסייד היטס.</b>",
+ "Snow Park":"XS ואז S · רק עם מגן גב.",
+ "Face de Bellevarde":"!לא השנה. תסתכל מהמעלית."
+};
+var PLAN_LIFTS={
+ "TSD6 Bollin":"<b>ליד הבית.</b> מעלית מתחילים — לאולי ופרסים.",
+ "Tufs":"הדרך המהירה למעלה בכל בוקר.",
+ "TSD6 Tichot":"הדרך המהירה למעלה בכל בוקר.",
+ "TSD6 Grattalu":"מהראש: הליכה קצרה לדרופים — עם מדריך.",
+ "Funiculaire Perce-Neige":"לקרחון. <b>אחת ל־20 דק׳</b> — אם פספסת: Lanches ואז Vanoise.",
+ "Grande Motte":"לפסגת הקרחון.",
+ "Tovière":"החיבור לוואל דיזר. מוקדם בבוקר או אחה״צ.",
+ "Palafour":"יום פאודר — מהראשונים.",
+ "TKD1 Chardonnet":"יום פאודר — מהראשונים.",
+ "Grand Huit":"<b>stash אחרי שלג</b> מתחתיה.",
+ "Aiguille Percée":"לירידה ללה ברביר — <b>יום ערפל</b>.",
+ "Tommeuses":"חיבור מלה דאיי חזרה לטין.",
+ "Mont Blanc":"בורדרקרוס — סייד היטס.",
+ "Lanches":"חצי־פייפ בתחתית · חלופה לפוניקולר.",
+ "Vanoise":"חלופה לפוניקולר.",
+ "Daille":"הצד השקט של ואל דיזר."
+};
+var PLACES=[
+ ["food",45.455247,6.9010987,"Le Planté de Bâton ★4.8","קרפים, פונדו, בירה · למרגלות Tufs"],
+ ["food",45.4562296,6.9011589,"La Pignatta ★4.6","איטלקי · הזמנה חובה · 04 79 06 32 97"],
+ ["food",45.4567841,6.9010351,"L'Armoise ★4.0","צרפתי · 3 מנות ב־€28"],
+ ["food",45.4561859,6.9005125,"Le Grattalu ★4.2","רקלט ופונדו · עד חצות"],
+ ["food",45.4683761,6.9034285,"Niurou Steakhouse ★4.8","לה לק · להזמין · 04 79 07 83 76"],
+ ["food",45.4681678,6.9097906,"Le Drôle d'Endroit ★4.6","לה לק · בלי הזמנות · סגור ראשון"],
+ ["food",45.4234848,6.8908643,"Le Panoramic ★4.4","על הקרחון · פוניקולר אחרון ~16:30"],
+ ["food",45.4567046,6.943825,"La Folie Douce","ואל דיזר · אפרה־סקי"],
+ ["bar",45.4556922,6.9004721,"Inside Bar ★4.6","16:00–02:00 · הבחירה לסולו"],
+ ["bar",45.4559582,6.9002146,"Le Studio ★4.6","בר קטן ואותנטי"],
+ ["bar",45.4565078,6.9004574,"Arobaze ★4.3","Place des Curlings"],
+ ["bar",45.4688889,6.9058333,"Jam Bar ★4.7","לה לק · סגור שלישי"],
+ ["svc",45.468775,6.905739,"Sherpa לה לק","סופר · ראשון סגור"],
+ ["svc",45.4681889,6.9061125,"Le Lagon","בריכה · חינם מסקיפס 6+"]
+];
+var PCOL={food:"#E07B2A",bar:"#8E63D6",svc:"#2EA66E"};
+var BASES={
+  topo:{n:"טופוגרפית",u:"https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",o:{subdomains:"abc",maxZoom:17,attribution:"© OpenTopoMap (CC-BY-SA)"}},
+  sat:{n:"לוויין",u:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",o:{maxZoom:18,attribution:"Imagery © Esri"}}
+};
+
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function fmtLen(m){return m>=1000?(m/1000).toFixed(1)+" ק״מ":m+" מ׳";}
+function deg(p){return Math.round(Math.atan(p/100)*180/Math.PI);}
+function bar(v,cls){var h='<div class="sbar '+cls+'">';for(var i=1;i<=5;i++)h+='<i class="'+(i<=v?'on l'+v:'')+'"></i>';return h+'</div>';}
+
+var map=null,ren,groupLayers={},liftLayer,liftHitLayer,placeLayer,runObjs=[],liftObjs=[],planOnly=false,JUMP=[],sel=null,hov=null,baseLayer=null,baseKey="none";
+
+function styleRun(o){
+  var d=DIFF[o.r.d]||DIFF[""], plan=!!PLAN_RUNS[o.r.n];
+  var isSel=sel===o, isHov=hov===o;
+  var dim=(sel&&!isSel)||(planOnly&&!plan&&!isSel);
+  if(o.r.k==="A"){
+    o.line.setStyle({color:d.c,fillColor:d.c,opacity:dim?.15:(isSel?.95:.55),fillOpacity:dim?.04:(isSel?.35:.16),weight:isSel?2.5:1});
+    return;
+  }
+  var w=isSel?7:isHov?6:(plan?4.5:3);
+  o.line.setStyle({color:d.c,opacity:dim?.22:1,weight:w,dashArray:(o.r.d==="freeride"||o.r.d==="expert")?"7 6":null});
+  if(o.casing) o.casing.setStyle({color:isSel?'#FFE066':(isHov?'#FFFFFF':'#F4F7F9'),opacity:dim?.12:(isSel||isHov?1:.9),weight:isSel?14:isHov?11:(plan?8:6.5)});
+}
+function styleLift(o){
+  if(!o.line) return;
+  var isSel=sel===o, isHov=hov===o, col=cssv('--txt')||'#0F1E28';
+  var dim=sel&&!isSel;
+  o.line.setStyle({color:isSel?'#FFE066':col,weight:isSel?5:isHov?4:2.2,opacity:dim?.25:.95});
+}
+function restyleAll(){runObjs.forEach(styleRun);liftObjs.forEach(styleLift);}
+
+function showRun(o){
+  var r=o.r,d=DIFF[r.d]||DIFF[""],s=r.s||{};
+  var h='<button class="ix" aria-label="סגור">✕</button>';
+  h+='<div class="ihead"><span class="dot" style="background:'+d.c+'"></span><b>'+(r.n||"מסלול ללא שם")+'</b></div>';
+  h+='<div class="itags"><span class="dchip" style="background:'+d.c+'">'+d.n+'</span>'+(r.p?'<span class="dchip" style="background:#8E63D6">פארק</span>':'')+'</div>';
+  if(r.k==="L"&&s.len){
+    if(s.ss){
+      h+='<div class="irow"><div class="ilbl">תלילות</div>'+bar(s.ss,'st')+'<div class="ival">'+s.ss+'/5 · '+STEEPN[s.ss]+'</div></div>';
+      var mx=Math.min(s.max,99);
+      h+='<div class="isub">ממוצע <b><bdi dir="ltr">'+s.avg+'% · '+deg(s.avg)+'°</bdi></b> · הקטע התלול <b><bdi dir="ltr">'+mx+'% · '+deg(mx)+'°</bdi></b></div>';
+    }
+    if(s.sn){
+      h+='<div class="irow"><div class="ilbl">שימור שלג</div>'+bar(s.sn,'sn')+'<div class="ival">'+s.sn+'/5 · '+SNOWN[s.sn]+'</div></div>';
+      h+='<div class="isub">פונה <b>'+aspName(s.asp)+'</b> · גובה ממוצע <b>'+s.alt+' מ׳</b><br>'+aspHint(s.asp)+'</div>';
+    }
+    h+='<div class="igrid"><div>אורך<b>'+fmtLen(s.len)+'</b></div><div>ירידה<b>'+(s.drop!=null?s.drop+' מ׳':'—')+'</b></div><div>גובה<b><bdi dir="ltr">'+(s.top?s.top+' → '+s.bot:'—')+'</bdi></b></div></div>';
+  }else{
+    h+='<div class="isub">אזור מסלול/פארק — אין נתוני שיפוע.</div>';
+  }
+  var note=PLAN_RUNS[r.n];
+  if(note){var bad=note.charAt(0)==="!";h+='<div class="pnote'+(bad?' bad':'')+'">'+(bad?note.slice(1):note)+'</div>';}
+  h+='<div class="ifoot">שימור שלג = הערכה לפי גובה וכיוון, לא מדידה. מצב המסלולים בזמן אמת: <a href="https://en.tignes.net/skiing/lifts-and-slopes-open" target="_blank" rel="noopener">tignes.net ↗</a></div>';
+  openInfo(h);
+}
+function showLift(o){
+  var l=o.l,s=l.s||[];
+  var h='<button class="ix" aria-label="סגור">✕</button><div class="ihead"><span class="dot" style="background:#3A4652"></span><b>'+(l.n||"מעלית")+'</b></div>';
+  h+='<div class="itags"><span class="dchip" style="background:#3A4652">'+(LIFTN[l.t]||l.t||"מעלית")+'</span></div>';
+  if(s[1]!=null) h+='<div class="igrid"><div>אורך<b>'+fmtLen(s[0])+'</b></div><div>עלייה<b>'+(s[2]-s[1])+' מ׳</b></div><div>גובה<b><bdi dir="ltr">'+s[1]+' → '+s[2]+'</bdi></b></div></div>';
+  if(PLAN_LIFTS[l.n]) h+='<div class="pnote">'+PLAN_LIFTS[l.n]+'</div>';
+  openInfo(h);
+}
+function openInfo(h){
+  var p=document.getElementById('info'); p.innerHTML=h; p.hidden=false;
+  p.querySelector('.ix').onclick=function(){select(null);};
+}
+function select(o){
+  sel=o; restyleAll();
+  if(!o){document.getElementById('info').hidden=true;return;}
+  if(o.casing) o.casing.bringToFront();
+  if(o.r) o.line.bringToFront();
+  if(o.r) showRun(o); else showLift(o);
+}
+
+function setBase(k,silent){
+  var note=document.getElementById('basenote'); note.hidden=true;
+  if(baseLayer){map.removeLayer(baseLayer);baseLayer=null;}
+  baseKey=k;
+  document.querySelectorAll('.bchip').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.b===k);});
+  document.getElementById('map').classList.toggle('hasbase',k!=="none");
+  if(k==="none") return;
+  var B=BASES[k], loaded=0, errs=0;
+  baseLayer=L.tileLayer(B.u,B.o);
+  baseLayer.on('tileload',function(){loaded++;});
+  baseLayer.on('tileerror',function(){errs++;});
+  baseLayer.addTo(map); baseLayer.bringToBack();
+  setTimeout(function(){
+    if(baseKey===k&&loaded===0){
+      map.removeLayer(baseLayer);baseLayer=null;baseKey="none";
+      document.querySelectorAll('.bchip').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.b==="none");});
+      document.getElementById('map').classList.remove('hasbase');
+      if(!silent) note.hidden=false;
+    }
+  },4000);
+}
+function gmapsSat(){var c=map.getCenter();return 'https://www.google.com/maps/@'+c.lat.toFixed(5)+','+c.lng.toFixed(5)+','+Math.round(map.getZoom())+'z/data=!3m1!1e3';}
+
+function buildMap(){
+  var el=document.getElementById('map');
+  if(typeof L==='undefined'){el.innerHTML='<p style="padding:20px;direction:rtl;color:var(--mute)">המפה לא נטענה. נסה לרענן.</p>';return;}
+  var canRotate=typeof L.Map.prototype.setBearing==='function';
+  ren=L.canvas({padding:.4,tolerance:10});
+  map=L.map('map',{renderer:ren,preferCanvas:true,zoomControl:false,attributionControl:false,minZoom:12,maxZoom:18,
+    rotate:canRotate,touchRotate:canRotate,rotateControl:false,bearing:0,zoomSnap:.25});
+  L.control.zoom({position:'topleft'}).addTo(map);
+  L.control.scale({imperial:false,position:'bottomright'}).addTo(map);
+  if(!canRotate) document.querySelector('.rot').style.display='none';
+
+  liftHitLayer=L.layerGroup().addTo(map);
+  SKI.lifts.forEach(function(l){
+    var o={l:l};
+    o.hit=L.polyline(l.c,{renderer:ren,opacity:0,weight:6}).addTo(liftHitLayer);
+    o.hit.on('mouseover',function(){hov=o;styleLift(o);});
+    o.hit.on('mouseout',function(){if(hov===o){hov=null;styleLift(o);}});
+    o.hit.on('click',function(e){L.DomEvent.stopPropagation(e);select(o);});
+    if(l.n) o.hit.bindTooltip(l.n,{sticky:true,direction:'top',className:'hovtip',opacity:1});
+    liftObjs.push(o);
+  });
+  GROUPS.forEach(function(g){groupLayers[g.k]=L.layerGroup().addTo(map);});
+  var gOf={};GROUPS.forEach(function(g){g.ds.forEach(function(d){gOf[d]=g.k;});});
+  var ordered=SKI.runs.slice().sort(function(a,b){return (a.k==="A"?0:1)-(b.k==="A"?0:1);});
+  ordered.forEach(function(r){
+    var gl=groupLayers[gOf[r.d]||"other"], o={r:r};
+    if(r.k==="A"){ o.line=L.polygon(r.c,{renderer:ren}).addTo(gl); }
+    else{
+      o.casing=L.polyline(r.c,{renderer:ren,interactive:false,lineCap:'round',lineJoin:'round'}).addTo(gl);
+      o.line=L.polyline(r.c,{renderer:ren,lineCap:'round',lineJoin:'round'}).addTo(gl);
+    }
+    o.line.on('mouseover',function(){hov=o;styleRun(o);if(o.r.n) o.line.openTooltip();});
+    o.line.on('mouseout',function(){if(hov===o){hov=null;styleRun(o);}});
+    o.line.on('click',function(e){L.DomEvent.stopPropagation(e);select(o);});
+    if(r.n) o.line.bindTooltip(r.n,{sticky:true,direction:'top',className:'hovtip',opacity:1});
+    styleRun(o); runObjs.push(o);
+    if(PLAN_RUNS[r.n]&&r.k==="L"&&!JUMP.some(function(j){return j.label===r.n;})){
+      JUMP.push({label:r.n,type:"מסלול",ll:r.c[Math.floor(r.c.length/2)],o:o});
+    }
+  });
+  // permanent plan labels (separate markers so hover tooltips stay free)
+  var lblLayer=L.layerGroup().addTo(map);
+  JUMP.forEach(function(j){L.tooltip({permanent:true,direction:'center',className:'lbl run',interactive:false}).setLatLng(j.ll).setContent(j.label).addTo(lblLayer);});
+
+  var labeled={};
+  liftLayer=L.layerGroup().addTo(map);
+  liftObjs.forEach(function(o){
+    var l=o.l, col=cssv('--txt')||'#0F1E28';
+    o.line=L.polyline(l.c,{renderer:ren,interactive:false}).addTo(liftLayer);
+    L.circleMarker(l.c[0],{renderer:ren,radius:2.6,color:col,weight:1,fillColor:col,fillOpacity:1,interactive:false}).addTo(liftLayer);
+    L.circleMarker(l.c[l.c.length-1],{renderer:ren,radius:2.6,color:col,weight:1,fillColor:col,fillOpacity:1,interactive:false}).addTo(liftLayer);
+    styleLift(o);
+    if(PLAN_LIFTS[l.n]&&!labeled[l.n]){
+      labeled[l.n]=1;
+      var mid=l.c.length===2?[(l.c[0][0]+l.c[1][0])/2,(l.c[0][1]+l.c[1][1])/2]:l.c[Math.floor((l.c.length-1)/2)];
+      L.tooltip({permanent:true,direction:'center',className:'lbl',interactive:false}).setLatLng(mid).setContent(l.n.replace(/^(TSD6|TKD1|TSF3|TCD10|TCD8) /,'')).addTo(lblLayer);
+      if(!JUMP.some(function(j){return j.label===l.n;})) JUMP.push({label:l.n,type:"מעלית",ll:mid,o:o});
+    }
+  });
+
+  placeLayer=L.layerGroup().addTo(map);
+  var bol=SKI.lifts.filter(function(l){return l.n==="TSD6 Bollin";})[0];
+  var home=bol?bol.c[0]:[45.4529,6.8985];
+  var hm=L.circleMarker(home,{renderer:ren,radius:10,color:'#0B1219',weight:2.5,fillColor:'#D8A93C',fillOpacity:1})
+    .bindPopup('<b class="pt">הבסיס שלך</b><div class="pm">וואל קלארה · ליד Bollin</div>13 לילות · 8–21 בינואר.').addTo(placeLayer);
+  L.tooltip({permanent:true,direction:'top',offset:[0,-10],className:'lbl run',interactive:false}).setLatLng(home).setContent('🏠 בית').addTo(lblLayer);
+  JUMP.unshift({label:"🏠 הבסיס שלך",type:"",ll:home,m:hm});
+  PLACES.forEach(function(p){
+    var m=L.circleMarker([p[1],p[2]],{renderer:ren,radius:6.5,color:'#0B1219',weight:1.8,fillColor:PCOL[p[0]],fillOpacity:1})
+      .bindPopup('<b class="pt">'+p[3]+'</b><div class="pm">'+p[4]+'</div><a href="https://www.google.com/maps/search/?api=1&query='+p[1]+','+p[2]+'" target="_blank" rel="noopener">ניווט ↗</a>')
+      .addTo(placeLayer);
+    JUMP.push({label:p[3].replace(/ ★.*$/,''),type:p[0]==="food"?"אוכל":p[0]==="bar"?"בר":"שירות",ll:[p[1],p[2]],m:m});
+  });
+
+  map.setView(home,14.5);
+  map.on('click',function(){select(null);});
+  function labels(){el.classList.toggle('nolabels',map.getZoom()<14);}
+  map.on('zoomend',labels); labels();
+
+  if(canRotate){
+    var needle=document.getElementById('needle');
+    map.on('rotate',function(){needle.style.transform='rotate('+(-map.getBearing())+'deg)';});
+    document.getElementById('rl').onclick=function(){map.setBearing(map.getBearing()-30);};
+    document.getElementById('rr').onclick=function(){map.setBearing(map.getBearing()+30);};
+    document.getElementById('rn').onclick=function(){map.setBearing(0);};
+  }
+  var s=document.getElementById('jump');
+  JUMP.forEach(function(j,i){var op=document.createElement('option');op.value=i;op.textContent=j.label+(j.type?' · '+j.type:'');s.appendChild(op);});
+  s.onchange=function(){
+    var j=JUMP[+s.value]; if(!j) return;
+    map.setView(j.ll,16);
+    setTimeout(function(){ if(j.o) select(j.o); else if(j.m) j.m.openPopup(); },250);
+  };
+  document.querySelectorAll('.bchip').forEach(function(b){b.onclick=function(){setBase(b.dataset.b);};});
+  setBase('sat',true);
+  document.getElementById('gsat').onclick=function(e){e.preventDefault();window.open(gmapsSat(),'_blank','noopener');};
+}
+
+var chipsEl=document.getElementById('chips');
+var CH=GROUPS.map(function(g){return {k:g.k,n:g.n,c:g.c};}).concat([{k:"lifts",n:"מעליות",c:"#3A4652"},{k:"places",n:"מקומות",c:"#E07B2A"}]);
+chipsEl.innerHTML=CH.map(function(c){return '<button class="chip" aria-pressed="true" data-k="'+c.k+'"><i style="background:'+c.c+'"></i>'+c.n+'</button>';}).join('')+
+  '<button class="chip" aria-pressed="false" data-k="plan">⭐ רק התוכנית</button><button class="chip" aria-pressed="false" data-k="home">🏠 בית</button>';
+chipsEl.querySelectorAll('.chip').forEach(function(b){
+  b.onclick=function(){
+    if(!map) return;
+    var k=b.dataset.k;
+    if(k==="home"){var bol=SKI.lifts.filter(function(l){return l.n==="TSD6 Bollin";})[0];map.setView(bol?bol.c[0]:[45.4529,6.8985],16);return;}
+    if(k==="plan"){planOnly=!planOnly;b.setAttribute('aria-pressed',planOnly);restyleAll();return;}
+    var on=b.getAttribute('aria-pressed')!=="true"; b.setAttribute('aria-pressed',on);
+    var lay=k==="lifts"?liftLayer:k==="places"?placeLayer:groupLayers[k];
+    if(on) map.addLayer(lay); else map.removeLayer(lay);
+    if(k==="lifts"){ if(on) map.addLayer(liftHitLayer); else map.removeLayer(liftHitLayer); }
+  };
+});
+document.getElementById('legend').innerHTML=
+  GROUPS.map(function(g){return '<span><i style="background:'+g.c+'"></i>'+g.n+'</span>';}).join('')+
+  '<span><i style="background:#3A4652;height:2px"></i>מעלית</span><span><i style="background:#D8A93C;width:10px;height:10px;border-radius:50%"></i>בית</span><span><i style="background:#E07B2A;width:10px;height:10px;border-radius:50%"></i>אוכל</span><span><i style="background:#8E63D6;width:10px;height:10px;border-radius:50%"></i>בר</span>';
+
+var tabs=document.querySelectorAll('.tab');
+tabs.forEach(function(tb){
+  tb.onclick=function(){
+    tabs.forEach(function(x){x.setAttribute('aria-selected','false');});
+    tb.setAttribute('aria-selected','true');
+    document.querySelectorAll('.panel').forEach(function(p){p.hidden=(p.id!==tb.dataset.p);});
+    if(tb.dataset.p==='pm'){ if(!map) buildMap(); else setTimeout(function(){map.invalidateSize();},60); }
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+});
+</script>
+</body>
+</html>
